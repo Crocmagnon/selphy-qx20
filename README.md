@@ -113,3 +113,7 @@ Codes whose upper 16 bits are zero are informational.
 
 The QX20 only offers its own access point. The app can change that network's passphrase,
 but has no command to join another network.
+
+## License
+
+Public domain, see [UNLICENSE](UNLICENSE).
