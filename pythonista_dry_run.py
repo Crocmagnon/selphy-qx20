@@ -1,5 +1,8 @@
-"""Same as pythonista_print.py, but stops before printing: shows the prepared image,
-waits for the printer and checks it accepts the image. No paper or ink used."""
-from pythonista_print import main
+"""Same as pythonista_print.py, but stops before printing: shows the preview, waits for the
+printer and checks it accepts the images. No paper or ink used."""
+import importlib
 
-main(dry_run=True)
+import pythonista_print
+
+importlib.reload(pythonista_print)  # Pythonista keeps modules loaded between runs
+pythonista_print.main(dry_run=True)

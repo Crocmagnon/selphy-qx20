@@ -5,12 +5,16 @@ It shows a numbered preview and asks for confirmation. If the printer is not rea
 asks you to switch to the printer's Wi-Fi and prints as soon as it answers.
 Keep cpnp_print.py in the same folder.
 """
+import importlib
 import io
 import time
 
 from PIL import Image, ImageDraw, ImageOps
 
-from cpnp_print import PrintError, print_jpeg, reachable
+import cpnp_print
+
+importlib.reload(cpnp_print)  # Pythonista keeps modules loaded between runs
+from cpnp_print import PrintError, print_jpeg, reachable  # noqa: E402
 
 PRINTER_IP = "192.168.0.1"
 CARD_SIZE = (644, 826)  # borderless card, portrait
