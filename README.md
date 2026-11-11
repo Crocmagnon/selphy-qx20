@@ -36,8 +36,8 @@ without printing.
 
 ### From an iPhone, with Pythonista
 
-`pythonista_print.py` turns a photo into a card-sized JPEG (landscape photos are rotated to
-fill the portrait card) and prints it.
+`pythonista_print.py` turns photos into card-sized JPEGs (landscape photos are rotated to
+fill the portrait card) and prints them.
 
 1. Get the scripts with `update.py`, which downloads them next to itself (and updates
    itself). Create a folder in Pythonista's local storage, then paste this in the console,
