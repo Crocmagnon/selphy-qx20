@@ -37,12 +37,12 @@ def prepare(img):
     return out.getvalue(), rotated
 
 
-def contact_sheet(jpegs, per_row=4):
+def contact_sheet(jpegs, per_row=4, background="white"):
     """Numbered thumbnails of the prepared images, in print order."""
     tw, th, pad = CARD_SIZE[0] // 4, CARD_SIZE[1] // 4, 8
     rows = (len(jpegs) + per_row - 1) // per_row
     cols = min(len(jpegs), per_row)
-    sheet = Image.new("RGB", (cols * (tw + pad) + pad, rows * (th + pad) + pad), "white")
+    sheet = Image.new("RGB", (cols * (tw + pad) + pad, rows * (th + pad) + pad), background)
     draw = ImageDraw.Draw(sheet)
     for i, data in enumerate(jpegs):
         x, y = pad + (i % per_row) * (tw + pad), pad + (i // per_row) * (th + pad)
@@ -136,13 +136,16 @@ def wait_for_printer(timeout=120):
     return False
 
 
-def confirm(sheet, n, rotated, connected, dry_run):
-    """Show the preview with a recap and a confirm button. True if confirmed.
+def confirm(jpegs, rotated, connected, dry_run):
+    """Show the preview with a recap; confirm button in the title bar. True if confirmed.
 
     A ui view rather than console.alert, whose dimmed overlay hid the preview.
     """
     import ui
 
+    dark = getattr(ui, "get_ui_style", lambda: "light")() == "dark"
+    bg, fg = ("black", "white") if dark else ("white", "black")
+    n = len(jpegs)
     what = f"{n} photo{'s' if n > 1 else ''}"
     lines = [f"{what} au format carte sans bordure, dans l'ordre de l'aperçu (1 à {n})."]
     if rotated:
@@ -161,22 +164,28 @@ def confirm(sheet, n, rotated, connected, dry_run):
         confirmed.append(True)
         view.close()
 
+    class ConfirmView(ui.View):
+        preview = recap = None
+
+        def layout(self):  # frames follow the actual size, whatever the presentation
+            if self.preview is None:
+                return
+            text_h = 150
+            self.preview.frame = (10, 10, self.width - 20, max(self.height - text_h - 20, 0))
+            self.recap.frame = (16, self.height - text_h, self.width - 32, text_h - 10)
+
     png = io.BytesIO()
-    sheet.save(png, "PNG")
-    view = ui.View(frame=(0, 0, 540, 680), background_color="white", name=f"{verb} {what} ?")
-    view.add_subview(ui.ImageView(
-        frame=(10, 10, 520, 440), flex="WH", content_mode=ui.CONTENT_SCALE_ASPECT_FIT,
-        image=ui.Image.from_data(png.getvalue()),
-    ))
-    view.add_subview(ui.Label(
-        frame=(16, 460, 508, 150), flex="WT", number_lines=0, text="\n".join(lines),
-        text_color="black",
-    ))
-    view.add_subview(ui.Button(
-        frame=(16, 620, 508, 48), flex="WT", corner_radius=10, action=on_confirm,
-        title=verb if connected else f"Attendre et {verb.lower()}",
-        background_color="#007aff", tint_color="white",
-    ))
+    contact_sheet(jpegs, background=bg).save(png, "PNG")
+    view = ConfirmView(background_color=bg, name=f"{verb} {what} ?")
+    view.preview = ui.ImageView(
+        content_mode=ui.CONTENT_SCALE_ASPECT_FIT, image=ui.Image.from_data(png.getvalue())
+    )
+    view.recap = ui.Label(number_of_lines=0, text_color=fg, text="\n".join(lines))
+    view.add_subview(view.preview)
+    view.add_subview(view.recap)
+    view.right_button_items = [
+        ui.ButtonItem(title=verb if connected else f"Attendre et {verb.lower()}", action=on_confirm)
+    ]
     view.present("sheet")  # closing it with the title bar's X cancels
     view.wait_modal()
     return bool(confirmed)
@@ -196,7 +205,7 @@ def main(dry_run=False):
         return
 
     connected = reachable(PRINTER_IP)
-    if not confirm(contact_sheet(jpegs), len(jpegs), rotated, connected, dry_run):
+    if not confirm(jpegs, rotated, connected, dry_run):
         console.hud_alert("Annulé")
         return
     if not connected and not wait_for_printer():
