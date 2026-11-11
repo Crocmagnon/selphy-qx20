@@ -9,7 +9,7 @@ import importlib
 import io
 import time
 
-from PIL import Image, ImageDraw, ImageOps
+from PIL import Image, ImageDraw, ImageFont, ImageOps
 
 import cpnp_print
 
@@ -38,17 +38,24 @@ def prepare(img):
 
 
 def contact_sheet(jpegs, per_row=4, background="white"):
-    """Numbered thumbnails of the prepared images, in print order."""
-    tw, th, pad = CARD_SIZE[0] // 4, CARD_SIZE[1] // 4, 8
+    """Numbered thumbnails of the prepared images, in print order.
+
+    Half print resolution, so the view scales it down on Retina screens instead of up.
+    """
+    tw, th, pad = CARD_SIZE[0] // 2, CARD_SIZE[1] // 2, 16
     rows = (len(jpegs) + per_row - 1) // per_row
     cols = min(len(jpegs), per_row)
     sheet = Image.new("RGB", (cols * (tw + pad) + pad, rows * (th + pad) + pad), background)
     draw = ImageDraw.Draw(sheet)
+    try:
+        font = ImageFont.load_default(size=36)  # Pillow >= 10.1
+    except TypeError:
+        font = ImageFont.load_default()
     for i, data in enumerate(jpegs):
         x, y = pad + (i % per_row) * (tw + pad), pad + (i // per_row) * (th + pad)
-        sheet.paste(Image.open(io.BytesIO(data)).resize((tw, th)), (x, y))
-        draw.rectangle((x, y, x + 22, y + 16), fill="black")
-        draw.text((x + 4, y + 2), str(i + 1), fill="white")
+        sheet.paste(Image.open(io.BytesIO(data)).resize((tw, th), Image.LANCZOS), (x, y))
+        draw.rectangle((x, y, x + 56, y + 48), fill="black")
+        draw.text((x + 10, y + 4), str(i + 1), fill="white", font=font)
     return sheet
 
 
