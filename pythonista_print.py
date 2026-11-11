@@ -136,9 +136,12 @@ def wait_for_printer(timeout=120):
     return False
 
 
-def confirm(n, rotated, connected, dry_run):
-    """Recap and confirmation; Cancel raises KeyboardInterrupt and stops the script."""
-    import console
+def confirm(sheet, n, rotated, connected, dry_run):
+    """Show the preview with a recap and a confirm button. True if confirmed.
+
+    A ui view rather than console.alert, whose dimmed overlay hid the preview.
+    """
+    import ui
 
     what = f"{n} photo{'s' if n > 1 else ''}"
     lines = [f"{what} au format carte sans bordure, dans l'ordre de l'aperçu (1 à {n})."]
@@ -152,7 +155,31 @@ def confirm(n, rotated, connected, dry_run):
             "appui long sur le Wi-Fi, QX20-…). Ça partira tout seul."
         )
     verb = "Tester" if dry_run else "Imprimer"
-    console.alert(f"{verb} {what} ?", "\n".join(lines), verb if connected else "Attendre et " + verb.lower())
+    confirmed = []
+
+    def on_confirm(sender):
+        confirmed.append(True)
+        view.close()
+
+    png = io.BytesIO()
+    sheet.save(png, "PNG")
+    view = ui.View(frame=(0, 0, 540, 680), background_color="white", name=f"{verb} {what} ?")
+    view.add_subview(ui.ImageView(
+        frame=(10, 10, 520, 440), flex="WH", content_mode=ui.CONTENT_SCALE_ASPECT_FIT,
+        image=ui.Image.from_data(png.getvalue()),
+    ))
+    view.add_subview(ui.Label(
+        frame=(16, 460, 508, 150), flex="WT", number_lines=0, text="\n".join(lines),
+        text_color="black",
+    ))
+    view.add_subview(ui.Button(
+        frame=(16, 620, 508, 48), flex="WT", corner_radius=10, action=on_confirm,
+        title=verb if connected else f"Attendre et {verb.lower()}",
+        background_color="#007aff", tint_color="white",
+    ))
+    view.present("sheet")  # closing it with the title bar's X cancels
+    view.wait_modal()
+    return bool(confirmed)
 
 
 def main(dry_run=False):
@@ -168,9 +195,10 @@ def main(dry_run=False):
         console.hud_alert("Aucune photo", "error")
         return
 
-    contact_sheet(jpegs).show()  # preview in the console
     connected = reachable(PRINTER_IP)
-    confirm(len(jpegs), rotated, connected, dry_run)
+    if not confirm(contact_sheet(jpegs), len(jpegs), rotated, connected, dry_run):
+        console.hud_alert("Annulé")
+        return
     if not connected and not wait_for_printer():
         console.alert("Échec", "Imprimante toujours introuvable.", "OK", hide_cancel_button=True)
         return
