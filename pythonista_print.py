@@ -94,14 +94,32 @@ def downscaled(data, max_px=1600):
     return Image.open(io.BytesIO(ctypes.string_at(jpeg.bytes(), jpeg.length())))
 
 
+def fingerprint(img):
+    """16x16 grayscale pixels, enough to recognise the same picture in another format."""
+    return list(img.convert("L").resize((16, 16)).getdata())
+
+
+def same_picture(a, b, tolerance=3):
+    """Mean absolute pixel difference below tolerance (out of 255)."""
+    return sum(abs(x - y) for x, y in zip(a, b)) / len(a) < tolerance
+
+
 def load_images():
     """Yield the shared or picked photos one by one, downscaled, to keep memory low."""
     import appex
     import photos
 
     if appex.is_running_extension():
+        # Photos may hand over each photo twice (e.g. HEIC and JPEG): skip near-identical ones.
+        seen = []
         for data in appex.get_images_data() or []:
-            yield downscaled(data)
+            img = downscaled(data)
+            fp = fingerprint(img)
+            if any(same_picture(fp, other) for other in seen):
+                print("doublon ignoré")
+                continue
+            seen.append(fp)
+            yield img
         return
     for asset in photos.pick_asset(title="Photos à imprimer", multi=True) or []:
         yield downscaled(asset.get_image_data().getvalue())
