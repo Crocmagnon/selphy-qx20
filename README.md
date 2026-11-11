@@ -39,12 +39,13 @@ without printing.
 `pythonista_print.py` turns a photo into a card-sized JPEG (landscape photos are rotated to
 fill the portrait card) and prints it.
 
-1. Get the scripts, either:
-   - clone the repo with [Working Copy](https://workingcopy.app) and open its folder in
-     Pythonista (*External Files → Open…*); pull in Working Copy to update; or
-   - copy `update.py` into a Pythonista folder and run it: it downloads the scripts next to
-     itself, and updates itself too. GitHub caches raw files for a few minutes, so a fresh
-     push may take a moment to show up.
+1. Get the scripts with [Working Copy](https://workingcopy.app) (cloning and pulling are
+   free):
+   - in Working Copy, *+* → *Clone repository*, URL
+     `https://github.com/Crocmagnon/selphy-qx20.git`;
+   - in Pythonista's file browser, *External Files* → *Open…*, then pick *Working Copy* →
+     `selphy-qx20` in the Files picker;
+   - to update, pull in Working Copy: Pythonista sees the new files right away.
 2. Either run `pythonista_print.py` in Pythonista and pick a photo, or share from Photos:
    - once: in a Photos share sheet, *Edit Actions…* and enable *Run Pythonista Script*;
      in Pythonista's settings, *Share Extension Shortcuts*, add `pythonista_print.py`;
