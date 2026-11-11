@@ -1,7 +1,7 @@
 """Minimal CPNP print client for the Canon SELPHY QX20 (card paper).
 
 Transport from selphy_go's notes; QX command layout from the official Android app.
-Usage: python3 cpnp_print.py <printer_ip> <file.jpg>
+Usage: python3 cpnp_print.py <printer_ip> <file.jpg> [--dry-run]
 """
 import socket, struct, sys, time
 
@@ -76,8 +76,11 @@ def reachable(ip, timeout=1.0):
         p.udp.close()
 
 
-def print_jpeg(ip, data):
-    """Print one JPEG (bytes) on borderless card paper. Raises PrintError on failure."""
+def print_jpeg(ip, data, dry_run=False):
+    """Print one JPEG (bytes) on borderless card paper. Raises PrintError on failure.
+
+    dry_run talks to the printer and checks the image bounds, but stops before the print job.
+    """
     w, h = jpeg_size(data)
     print(f"image: {len(data)} bytes, {w}x{h}")
 
@@ -93,6 +96,9 @@ def print_jpeg(ip, data):
     min_w, min_h, max_w, max_h = struct.unpack("<4H", body[132:140])
     if not (min_w <= w <= max_w and min_h <= h <= max_h):
         raise PrintError(f"image {w}x{h} outside printer bounds {min_w}-{max_w} x {min_h}-{max_h}")
+    if dry_run:
+        print("dry run: printer ready, image accepted, not printing")
+        return
     _, body = p.call(FLUSH, b"\0" * 4)
     print("flush:", body.hex(" "))
 
@@ -159,6 +165,6 @@ def print_jpeg(ip, data):
 
 if __name__ == "__main__":
     try:
-        print_jpeg(sys.argv[1], open(sys.argv[2], "rb").read())
+        print_jpeg(sys.argv[1], open(sys.argv[2], "rb").read(), dry_run="--dry-run" in sys.argv)
     except PrintError as e:
         sys.exit(str(e))

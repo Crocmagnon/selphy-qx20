@@ -60,7 +60,7 @@ def wait_for_printer(timeout=120):
     return False
 
 
-def main():
+def main(dry_run=False):
     import console
 
     img = get_image()
@@ -68,16 +68,18 @@ def main():
         console.hud_alert("Aucune photo", "error")
         return
     data = prepare(img)
+    if dry_run:
+        Image.open(io.BytesIO(data)).show()  # preview in the console
     if not wait_for_printer():
         console.alert("Échec", "Imprimante toujours introuvable.", "OK", hide_cancel_button=True)
         return
-    console.hud_alert("Impression…")
+    console.hud_alert("Test…" if dry_run else "Impression…")
     try:
-        print_jpeg(PRINTER_IP, data)
+        print_jpeg(PRINTER_IP, data, dry_run=dry_run)
     except (PrintError, OSError) as e:
         console.alert("Échec", str(e), "OK", hide_cancel_button=True)
         return
-    console.hud_alert("Imprimé")
+    console.hud_alert("Test OK, rien imprimé" if dry_run else "Imprimé")
 
 
 if __name__ == "__main__":

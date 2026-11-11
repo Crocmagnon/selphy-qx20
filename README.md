@@ -31,7 +31,8 @@ Layout app.
    ```
 
 The script prints every status change and stops on any real printer error. If the printer's
-LED turns red, power-cycle it.
+LED turns red, power-cycle it. Add `--dry-run` to talk to the printer and check the image
+without printing.
 
 ### From an iPhone, with Pythonista
 
@@ -44,9 +45,13 @@ fill the portrait card) and prints it.
    - copy `update.py` into a Pythonista folder and run it: it downloads the scripts next to
      itself, and updates itself too. GitHub caches raw files for a few minutes, so a fresh
      push may take a moment to show up.
-2. Either run `pythonista_print.py` in Pythonista and pick a photo, or, in Photos, share a
-   photo → *Run Pythonista Script* → `pythonista_print.py`. To get it in one tap, add it to
-   the share extension shortcuts in Pythonista's settings.
+2. Either run `pythonista_print.py` in Pythonista and pick a photo, or share from Photos:
+   - once: in a Photos share sheet, *Edit Actions…* and enable *Run Pythonista Script*;
+     in Pythonista's settings, *Share Extension Shortcuts*, add `pythonista_print.py`;
+   - then: share a photo → *Run Pythonista Script* → tap the shortcut.
+
+   `pythonista_dry_run.py` does the same without printing: it previews the prepared image,
+   waits for the printer and checks the printer accepts it. Add it as a second shortcut.
 3. If the iPhone is not on the printer's Wi-Fi, the script says so and waits: switch networks
    from Control Center (long-press the Wi-Fi button) so Pythonista stays in the foreground,
    and printing starts as soon as the printer answers.
