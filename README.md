@@ -4,8 +4,9 @@
 > tested on one printer (firmware 1.00) with one photo on card paper. No error recovery, no
 > square paper. Not affiliated with Canon.
 
-Prints a JPEG on a **Canon SELPHY QX20** over Wi-Fi, without the official SELPHY Photo
-Layout app.
+Prints on a **Canon SELPHY QX20** over Wi-Fi, without the official SELPHY Photo Layout app:
+from a computer, or on an iPhone with Pythonista, straight from the share sheet in Photos,
+one or several photos at a time.
 
 ## Usage
 
