@@ -116,4 +116,4 @@ but has no command to join another network.
 
 ## License
 
-Public domain, see [UNLICENSE](UNLICENSE).
+Public domain (Unlicense), see [LICENSE](LICENSE).
