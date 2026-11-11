@@ -4,7 +4,7 @@ import os
 import requests
 
 BASE = "https://raw.githubusercontent.com/Crocmagnon/selphy-qx20/main/"
-FILES = ("cpnp_print.py", "pythonista_print.py", "hotspot_test.py", "update.py")
+FILES = ("cpnp_print.py", "pythonista_print.py", "update.py")
 HERE = os.path.dirname(os.path.abspath(__file__))
 
 texts = {}

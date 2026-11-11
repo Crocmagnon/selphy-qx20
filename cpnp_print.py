@@ -63,6 +63,19 @@ class PrintError(Exception):
     pass
 
 
+def reachable(ip, timeout=1.0):
+    """True if a CPNP printer answers a discover request at ip."""
+    p = Printer(ip)
+    p.udp.settimeout(timeout)
+    try:
+        p.call(DISCOVER)
+        return True
+    except OSError:  # timeout, or no route while on another network
+        return False
+    finally:
+        p.udp.close()
+
+
 def print_jpeg(ip, data):
     """Print one JPEG (bytes) on borderless card paper. Raises PrintError on failure."""
     w, h = jpeg_size(data)

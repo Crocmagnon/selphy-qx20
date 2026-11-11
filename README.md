@@ -38,13 +38,18 @@ LED turns red, power-cycle it.
 `pythonista_print.py` turns a photo into a card-sized JPEG (landscape photos are rotated to
 fill the portrait card) and prints it.
 
-1. Copy `update.py` into a Pythonista folder and run it: it downloads `cpnp_print.py` and
-   `pythonista_print.py` next to itself. Run it again whenever the repo changes (it updates
-   itself too). The iPhone needs internet access for this, so not the printer's Wi-Fi.
-2. Join the printer's Wi-Fi from the iPhone settings.
-3. Either run `pythonista_print.py` in Pythonista and pick a photo, or, in Photos, share a
+1. Get the scripts, either:
+   - clone the repo with [Working Copy](https://workingcopy.app) and open its folder in
+     Pythonista (*External Files → Open…*); pull in Working Copy to update; or
+   - copy `update.py` into a Pythonista folder and run it: it downloads the scripts next to
+     itself, and updates itself too. GitHub caches raw files for a few minutes, so a fresh
+     push may take a moment to show up.
+2. Either run `pythonista_print.py` in Pythonista and pick a photo, or, in Photos, share a
    photo → *Run Pythonista Script* → `pythonista_print.py`. To get it in one tap, add it to
    the share extension shortcuts in Pythonista's settings.
+3. If the iPhone is not on the printer's Wi-Fi, the script says so and waits: switch networks
+   from Control Center (long-press the Wi-Fi button) so Pythonista stays in the foreground,
+   and printing starts as soon as the printer answers.
 
 On first run iOS asks for local network access: allow it.
 
@@ -128,6 +133,11 @@ Codes whose upper 16 bits are zero are informational.
 
 The QX20 only offers its own access point. The app can change that network's passphrase,
 but has no command to join another network.
+
+Pythonista cannot switch the iPhone to that network by itself: calling
+`NEHotspotConfigurationManager.applyConfiguration` through `objc_util` is silently refused
+(no system prompt, no network change), presumably because Pythonista lacks the Hotspot
+Configuration entitlement.
 
 ## License
 
