@@ -46,17 +46,27 @@ def contact_sheet(jpegs, per_row=4, background="white"):
     rows = (len(jpegs) + per_row - 1) // per_row
     cols = min(len(jpegs), per_row)
     sheet = Image.new("RGB", (cols * (tw + pad) + pad, rows * (th + pad) + pad), background)
-    draw = ImageDraw.Draw(sheet)
-    try:
-        font = ImageFont.load_default(size=36)  # Pillow >= 10.1
-    except TypeError:
-        font = ImageFont.load_default()
     for i, data in enumerate(jpegs):
         x, y = pad + (i % per_row) * (tw + pad), pad + (i // per_row) * (th + pad)
         sheet.paste(Image.open(io.BytesIO(data)).resize((tw, th), Image.LANCZOS), (x, y))
-        draw.rectangle((x, y, x + 56, y + 48), fill="black")
-        draw.text((x + 10, y + 4), str(i + 1), fill="white", font=font)
+        sheet.paste(number_badge(str(i + 1)), (x, y))
     return sheet
+
+
+def number_badge(text, height=48):
+    """White number on black, `height` px tall."""
+    try:
+        font = ImageFont.load_default(size=int(height * 0.75))  # Pillow >= 10.1
+    except TypeError:
+        font = None
+    if font:
+        badge = Image.new("RGB", (int(font.getlength(text)) + 20, height), "black")
+        ImageDraw.Draw(badge).text((10, height // 2), text, fill="white", font=font, anchor="lm")
+        return badge
+    # Older Pillow (Pythonista): fixed ~6x11 px bitmap font, scaled up pixel by pixel.
+    small = Image.new("RGB", (6 * len(text) + 4, 13), "black")
+    ImageDraw.Draw(small).text((2, 1), text, fill="white")
+    return small.resize((small.width * height // 13, height), Image.NEAREST)
 
 
 def downscaled(data, max_px=1600):
