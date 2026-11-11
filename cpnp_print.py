@@ -59,21 +59,27 @@ def jpeg_size(data):
     raise ValueError("no SOF marker")
 
 
-def main():
-    ip, path = sys.argv[1], sys.argv[2]
-    data = open(path, "rb").read()
+class PrintError(Exception):
+    pass
+
+
+def print_jpeg(ip, data):
+    """Print one JPEG (bytes) on borderless card paper. Raises PrintError on failure."""
     w, h = jpeg_size(data)
-    print(f"{path}: {len(data)} bytes, {w}x{h}")
+    print(f"image: {len(data)} bytes, {w}x{h}")
 
     p = Printer(ip)
-    p.call(DISCOVER)
+    try:
+        p.call(DISCOVER)
+    except socket.timeout:
+        raise PrintError(f"no answer from {ip}: is this device on the printer's Wi-Fi?")
     _, body = p.call(ID, b"\0" * 4)
     print("ID:", body[2:].decode(errors="replace"))
     _, body = p.call(STATUS)
     print("status:", body[:8].hex(" "))
     min_w, min_h, max_w, max_h = struct.unpack("<4H", body[132:140])
     if not (min_w <= w <= max_w and min_h <= h <= max_h):
-        sys.exit(f"image {w}x{h} outside printer bounds {min_w}-{max_w} x {min_h}-{max_h}")
+        raise PrintError(f"image {w}x{h} outside printer bounds {min_w}-{max_w} x {min_h}-{max_h}")
     _, body = p.call(FLUSH, b"\0" * 4)
     print("flush:", body.hex(" "))
 
@@ -86,7 +92,7 @@ def main():
     port = struct.unpack(">H", body[4:6])[0]
     print("start_tcp:", body.hex(" "), "-> port", port, "job", p.job)
     if port == 0:
-        sys.exit("printer not ready (port 0), restart it")
+        raise PrintError("printer not ready (port 0), restart it")
     p.tcp = socket.create_connection((ip, port), timeout=30)
 
     # Layout from the official app (CPNPMakedata / CPNPConnected), all little-endian.
@@ -102,9 +108,9 @@ def main():
         last = body
         print(f"req={req:#x} err={error:#x}", body[:0x20].hex(" "))
         if error & 0xFFFF0000:  # ERROR_TYPE_MASK; low-only codes (e.g. 0x10a PAPER_PICK_WAIT) are informational
-            sys.exit(f"printer error {error:#x}, aborting")
+            raise PrintError(f"printer error {error:#x}, power-cycle it")
         if req & 0xFF:
-            sys.exit("printer asks for overcoat data, not supported")
+            raise PrintError("printer asks for overcoat data, not supported")
         if req == 0:
             time.sleep(0.5)
         elif req == START_PRINT:
@@ -134,9 +140,12 @@ def main():
             print("job done")
             return
         else:
-            sys.exit(f"unknown data request {req:#x}: {body.hex(' ')}")
-    sys.exit("timeout")
+            raise PrintError(f"unknown data request {req:#x}: {body.hex(' ')}")
+    raise PrintError("timeout")
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        print_jpeg(sys.argv[1], open(sys.argv[2], "rb").read())
+    except PrintError as e:
+        sys.exit(str(e))

@@ -1,8 +1,8 @@
 # selphy-qx20
 
-> **Barebones proof of concept.** One Python script, standard library only, tested on one
-> printer (firmware 1.00) with one photo on card paper. No error recovery, no square paper,
-> no image preparation. Not affiliated with Canon.
+> **Barebones proof of concept.** A standard-library Python client plus a Pythonista wrapper,
+> tested on one printer (firmware 1.00) with one photo on card paper. No error recovery, no
+> square paper. Not affiliated with Canon.
 
 Prints a JPEG on a **Canon SELPHY QX20** over Wi-Fi, without the official SELPHY Photo
 Layout app.
@@ -32,6 +32,19 @@ Layout app.
 
 The script prints every status change and stops on any real printer error. If the printer's
 LED turns red, power-cycle it.
+
+### From an iPhone, with Pythonista
+
+`pythonista_print.py` turns a photo into a card-sized JPEG (landscape photos are rotated to
+fill the portrait card) and prints it.
+
+1. Copy `cpnp_print.py` and `pythonista_print.py` into the same Pythonista folder.
+2. Join the printer's Wi-Fi from the iPhone settings.
+3. Either run `pythonista_print.py` in Pythonista and pick a photo, or, in Photos, share a
+   photo → *Run Pythonista Script* → `pythonista_print.py`. To get it in one tap, add it to
+   the share extension shortcuts in Pythonista's settings.
+
+On first run iOS asks for local network access: allow it.
 
 **Gotcha:** the printer's network is `192.168.0.0/24`, a common home subnet. If the computer
 also reaches a `192.168.0.0/24` network through another interface (Ethernet, Tailscale subnet
