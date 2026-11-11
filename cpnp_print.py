@@ -91,7 +91,18 @@ def print_jpeg(ip, data, dry_run=False):
         raise PrintError(f"no answer from {ip}: is this device on the printer's Wi-Fi?")
     _, body = p.call(ID, b"\0" * 4)
     print("ID:", body[2:].decode(errors="replace"))
-    _, body = p.call(STATUS)
+    deadline = time.time() + 120
+    while True:  # wait out informational states, e.g. 0x10a: remove the previous sheet
+        _, body = p.call(STATUS)
+        (error,) = struct.unpack("<I", body[68:72])
+        if error & 0xFFFF0000:
+            raise PrintError(f"printer error {error:#x}, power-cycle it")
+        if not error:
+            break
+        if time.time() > deadline:
+            raise PrintError(f"printer still busy ({error:#x})")
+        print(f"printer busy ({error:#x}), remove the printed sheet if any")
+        time.sleep(1)
     print("status:", body[:8].hex(" "))
     min_w, min_h, max_w, max_h = struct.unpack("<4H", body[132:140])
     if not (min_w <= w <= max_w and min_h <= h <= max_h):

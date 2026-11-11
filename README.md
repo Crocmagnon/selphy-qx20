@@ -52,7 +52,9 @@ fill the portrait card) and prints it.
 
    Keep the scripts in Pythonista's local storage: the share extension only offers local
    scripts (an external folder opened from Working Copy does not show up).
-2. Either run `pythonista_print.py` in Pythonista and pick a photo, or share from Photos:
+2. Either run `pythonista_print.py` in Pythonista and pick one or more photos, or share
+   them from Photos. The script shows a numbered preview of the crops and asks for
+   confirmation, then prints the photos one after the other. To share from Photos:
    - once: in a Photos share sheet, *Edit Actions…* and enable *Run Pythonista Script*;
      in Pythonista's settings, *Share Extension Shortcuts*, add `pythonista_print.py`;
    - then: share a photo → *Run Pythonista Script* → tap the shortcut.
