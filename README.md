@@ -39,13 +39,19 @@ without printing.
 `pythonista_print.py` turns a photo into a card-sized JPEG (landscape photos are rotated to
 fill the portrait card) and prints it.
 
-1. Get the scripts with [Working Copy](https://workingcopy.app) (cloning and pulling are
-   free):
-   - in Working Copy, *+* → *Clone repository*, URL
-     `https://github.com/Crocmagnon/selphy-qx20.git`;
-   - in Pythonista's file browser, *External Files* → *Open…*, then pick *Working Copy* →
-     `selphy-qx20` in the Files picker;
-   - to update, pull in Working Copy: Pythonista sees the new files right away.
+1. Get the scripts with `update.py`, which downloads them next to itself (and updates
+   itself). Create a folder in Pythonista's local storage, then paste this in the console,
+   with the iPhone on a network that has internet access:
+
+   ```python
+   import requests; open("update.py", "w").write(requests.get("https://raw.githubusercontent.com/Crocmagnon/selphy-qx20/main/update.py").text)
+   ```
+
+   This saves `update.py` in the console's current folder; move it into your folder if
+   needed, then run it. Run it again to update.
+
+   Keep the scripts in Pythonista's local storage: the share extension only offers local
+   scripts (an external folder opened from Working Copy does not show up).
 2. Either run `pythonista_print.py` in Pythonista and pick a photo, or share from Photos:
    - once: in a Photos share sheet, *Edit Actions…* and enable *Run Pythonista Script*;
      in Pythonista's settings, *Share Extension Shortcuts*, add `pythonista_print.py`;
