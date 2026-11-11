@@ -1,0 +1,115 @@
+# selphy-qx20
+
+> **Barebones proof of concept.** One Python script, standard library only, tested on one
+> printer (firmware 1.00) with one photo on card paper. No error recovery, no square paper,
+> no image preparation. Not affiliated with Canon.
+
+Prints a JPEG on a **Canon SELPHY QX20** over Wi-Fi, without the official SELPHY Photo
+Layout app.
+
+## Usage
+
+1. Turn the printer on. It broadcasts its own Wi-Fi network (`QX20-xxx`); its password is
+   on the label inside the ink cassette door. Connect the computer to it. The printer is
+   `192.168.0.1`.
+2. Prepare a JPEG that fits the printer's bounds (see below). For borderless card paper,
+   644×826 portrait works:
+
+   ```sh
+   uv run --no-project --with pillow python -c '
+   import sys
+   from PIL import Image, ImageOps
+   im = ImageOps.exif_transpose(Image.open(sys.argv[1])).convert("RGB")
+   ImageOps.fit(im, (644, 826), Image.LANCZOS).save(sys.argv[2], "JPEG", quality=95)
+   ' photo.jpg card.jpg
+   ```
+
+3. Print:
+
+   ```sh
+   python3 cpnp_print.py 192.168.0.1 card.jpg
+   ```
+
+The script prints every status change and stops on any real printer error. If the printer's
+LED turns red, power-cycle it.
+
+**Gotcha:** the printer's network is `192.168.0.0/24`, a common home subnet. If the computer
+also reaches a `192.168.0.0/24` network through another interface (Ethernet, Tailscale subnet
+router…), pin the route: `ip route add 192.168.0.1/32 dev <wifi-iface>`, plus
+`ip rule add to 192.168.0.1/32 lookup main priority 100` if Tailscale is involved.
+
+## Protocol notes
+
+The QX20 speaks **CPNP**, the protocol of older SELPHY CP models, documented by
+[selphy_go](https://github.com/tbleher/selphy_go). The QX-specific parts below were read from
+the official Android app's printing code.
+
+### Framing
+
+Every packet starts with a 16-byte big-endian header:
+
+| Offset | Size | Field |
+|---|---|---|
+| 0 | 4 | `CPNP` |
+| 4 | 2 | command (bit 15 set in responses) |
+| 8 | 2 | sequence number, echoed in the response |
+| 10 | 2 | job id (from `START_TCP` response), 0 over UDP |
+| 12 | 4 | payload length |
+
+Commands: `0x101` discover, `0x110` start TCP, `0x120` status, `0x121` data, `0x130` IEEE 1284
+id (`MDL:SELPHY QX20;CMD:Raster3;…`), `0x151` flush.
+
+### Flow
+
+1. UDP port 8609: discover, get id, status, flush, then `START_TCP`. Its response holds the TCP
+   port at payload offset 4 (big-endian, 49152 in practice).
+2. TCP to that port: poll status (`0x120`) and answer the printer's requests with data
+   packets (`0x121`, at most 4096 bytes of payload each).
+
+**Payloads are little-endian from here on.**
+
+### UDP status (payload)
+
+| Offset | Size | Field |
+|---|---|---|
+| 68 | 4 | error |
+| 132 / 134 | 2 / 2 | min JPEG width / height (644 / 768) |
+| 136 / 138 | 2 / 2 | max JPEG width / height (848 / 826) |
+
+### TCP status (payload)
+
+| Offset | Size | Field |
+|---|---|---|
+| 8 | 2 | device status |
+| 12 | 4 | error |
+| 16 | 4 | data request: `0x10000` start print, `0x20000` print data, `0x30000` end print; a non-zero low byte asks for overcoat data |
+| 24 | 4 | requested offset |
+| 28 | 4 | requested length |
+
+### Requests
+
+**Start print** (64 bytes): offset 2 code `0`, offset 4 size `64`, offset 12 (u16) image
+count `1`, offset 14 (u16) print size (`17` borderless square, `18` borderless card), offset 16
+(u8) overcoat (`2` glossy).
+
+**Print data** (104-byte header + JPEG slice): offset 2 code `1`, offset 4 `104 + length`,
+offset 12 image count `1`, offset 20 JPEG file size, 24 width, 28 height, 96 slice offset,
+100 slice length. The printer asks for the file in slices: first a tiny one, then the whole
+file.
+
+**End print** (64 bytes): offset 2 code `3`, offset 4 size `64`.
+
+### Errors seen
+
+Codes whose upper 16 bits are zero are informational.
+
+| Code | Meaning |
+|---|---|
+| `0x10a` | paper pick wait: the print is done, remove the sheet |
+| `0xffff04` | invalid command (for instance the CP900 start-print layout) |
+| `0xffff05` | JPEG decode error (for instance an image outside the size bounds) |
+
+## Wi-Fi
+
+The QX20 only offers its own access point. The app can change that network's passphrase,
+but has no command to join another network.
