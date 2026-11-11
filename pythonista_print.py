@@ -52,16 +52,59 @@ def contact_sheet(jpegs, per_row=4):
     return sheet
 
 
+def downscaled(data, max_px=1600):
+    """Decode an image file (JPEG, HEIC…) to a small, upright PIL image.
+
+    Uses iOS ImageIO thumbnails, which never hold the full-size bitmap: a 48 MP photo
+    decoded by PIL takes ~145 MB, enough to get the share extension killed.
+    """
+    import ctypes
+    from ctypes import c_double, c_size_t, c_void_p
+
+    from objc_util import ObjCClass, ObjCInstance, c, ns
+
+    imageio = ctypes.cdll.LoadLibrary("/System/Library/Frameworks/ImageIO.framework/ImageIO")
+    create_source = imageio.CGImageSourceCreateWithData
+    create_source.restype, create_source.argtypes = c_void_p, [c_void_p, c_void_p]
+    create_thumb = imageio.CGImageSourceCreateThumbnailAtIndex
+    create_thumb.restype, create_thumb.argtypes = c_void_p, [c_void_p, c_size_t, c_void_p]
+    c.CFRelease.restype, c.CFRelease.argtypes = None, [c_void_p]
+    to_jpeg = c.UIImageJPEGRepresentation
+    to_jpeg.restype, to_jpeg.argtypes = c_void_p, [c_void_p, c_double]
+
+    options = ns({
+        "kCGImageSourceCreateThumbnailFromImageAlways": True,
+        "kCGImageSourceCreateThumbnailWithTransform": True,  # apply EXIF orientation
+        "kCGImageSourceThumbnailMaxPixelSize": max_px,
+    })
+    source = create_source(ns(data).ptr, None)
+    if not source:
+        raise ValueError("unreadable image")
+    try:
+        cg_image = create_thumb(source, 0, options.ptr)
+    finally:
+        c.CFRelease(source)
+    if not cg_image:
+        raise ValueError("could not decode image")
+    try:
+        ui_image = ObjCClass("UIImage").imageWithCGImage_(c_void_p(cg_image))
+    finally:
+        c.CFRelease(cg_image)
+    jpeg = ObjCInstance(to_jpeg(ui_image.ptr, 0.95))
+    return Image.open(io.BytesIO(ctypes.string_at(jpeg.bytes(), jpeg.length())))
+
+
 def load_images():
-    """Yield the shared or picked photos one by one, to keep memory low."""
+    """Yield the shared or picked photos one by one, downscaled, to keep memory low."""
     import appex
     import photos
 
     if appex.is_running_extension():
-        yield from appex.get_images() or []
+        for data in appex.get_images_data() or []:
+            yield downscaled(data)
         return
     for asset in photos.pick_asset(title="Photos à imprimer", multi=True) or []:
-        yield asset.get_image()
+        yield downscaled(asset.get_image_data().getvalue())
 
 
 def wait_for_printer(timeout=120):
