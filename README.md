@@ -153,6 +153,68 @@ Pythonista cannot switch the iPhone to that network by itself: calling
 (no system prompt, no network change), presumably because Pythonista lacks the Hotspot
 Configuration entitlement.
 
+## Development
+
+### Files
+
+- `cpnp_print.py`: the protocol client. Standard library only, so it runs unchanged in
+  Pythonista. Importable: `print_jpeg(ip, data, dry_run=False)`, `reachable(ip)`.
+- `pythonista_print.py`: iOS side (photo loading, crop, preview, confirmation, Wi-Fi wait).
+  `pythonista_dry_run.py` runs it with `dry_run=True`.
+- `update.py`: fetches the files at the latest commit of `main`. The iPhone only sees a
+  change once it is pushed.
+
+### Rules
+
+- Never commit the printer's SSID or password; scripts ask for nothing of the kind and only
+  use `192.168.0.1`.
+- Keep `cpnp_print.py` dependency-free, and the project barebones.
+- Don't commit decompiled code from the official app; record findings (offsets, values) in
+  the protocol notes above.
+
+### Testing
+
+There is no test suite. Logic is checked locally with Pillow
+(`uv run --no-project --with pillow python …`); the Pythonista-only modules (`ui`, `console`,
+`appex`, `photos`, `objc_util`) don't exist off-device, so stub them in `sys.modules` to
+exercise the code around them. Anything touching them is then validated on the iPhone.
+
+Try changes with the dry run first: a real print uses paper and ink, and a bad command leaves
+the printer with a red LED until it is power-cycled.
+
+To reach the real printer from Linux, add a NetworkManager Wi-Fi profile for its network with
+`ipv4.never-default yes` so the default route stays on the main connection, then pin the
+route as described in the gotcha above. The printer goes to sleep after a few minutes: its
+network disappears and NetworkManager may fall back to another one, dropping the route.
+Remove the profile, route and rule when done.
+
+### Pythonista pitfalls
+
+- Modules stay loaded between runs: entry points `importlib.reload` what they import, or
+  updated files are ignored until the app is restarted.
+- Its Pillow is old: `ImageFont.load_default()` takes no size, hence the scaled-up bitmap
+  digits in the preview.
+- The share extension has little memory (decoding a 48 MP photo with PIL gets it killed:
+  photos go through ImageIO thumbnails), hands over each photo twice (deduplicated by
+  content), and only runs scripts from Pythonista's local storage.
+- `console.alert` dims everything behind it; the confirmation is a `ui` view instead.
+- `ui` silently ignores unknown keyword arguments (`number_lines` instead of
+  `number_of_lines` just did nothing); lay views out in `layout()`, as the presentation size
+  is not known in advance.
+- The script cannot join the printer's Wi-Fi itself (see Wi-Fi above).
+
+### Extending the protocol
+
+The QX-specific layouts come from the official Android app (SELPHY Photo Layout), decompiled
+with [jadx](https://github.com/skylot/jadx). Look there rather than guess, for instance for
+square paper, bordered prints or the multi-image spool mode. Under
+`jp/co/canon/ic/photolayout/model/printer/internal/`:
+
+- `cpnp/CPNPMakedata`: request layouts (start print, data transfer, end print, spool);
+- `cpnp/CPNPConnected`, `cpnp/CPNPConnectless`: TCP and UDP status fields;
+- `cpnp/CPNP`: enums, including the error codes;
+- `operation/QXPrintCommandExecutor`: the print flow.
+
 ## License
 
 Public domain (Unlicense), see [LICENSE](LICENSE).
