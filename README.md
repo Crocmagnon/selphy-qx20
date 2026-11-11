@@ -38,7 +38,9 @@ LED turns red, power-cycle it.
 `pythonista_print.py` turns a photo into a card-sized JPEG (landscape photos are rotated to
 fill the portrait card) and prints it.
 
-1. Copy `cpnp_print.py` and `pythonista_print.py` into the same Pythonista folder.
+1. Copy `update.py` into a Pythonista folder and run it: it downloads `cpnp_print.py` and
+   `pythonista_print.py` next to itself. Run it again whenever the repo changes (it updates
+   itself too). The iPhone needs internet access for this, so not the printer's Wi-Fi.
 2. Join the printer's Wi-Fi from the iPhone settings.
 3. Either run `pythonista_print.py` in Pythonista and pick a photo, or, in Photos, share a
    photo → *Run Pythonista Script* → `pythonista_print.py`. To get it in one tap, add it to
